@@ -1,0 +1,16 @@
+* {
+    color: #ededed;
+    font-family: Menlo, Monaco, "Courier New", monospace;
+}
+
+body {
+    margin: 0;
+}
+
+#app {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #242424;
+    height: 100vh;
+}
