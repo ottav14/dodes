@@ -3,6 +3,7 @@
     import * as GLOBAL from './global.js';
     import * as MATH from './math.ts';
     import Node from './Node.ts';
+    import Connection from './Connection.ts';
     import Input from './components/Input.svelte';
     import ItemWidget from './components/ItemWidget.svelte';
     
@@ -11,13 +12,15 @@
     let dpr: number;
     let hoveredNode: Node | null;
     let selectedNode: Node | null;
+    let hoveredConnection: Connection | null;
+    let selectedConnection: Connection | null;
     let dragging: boolean = false;
     let mx: number;
     let my: number;
     let dragOffsetX = 0;
     let dragOffsetY = 0;
     let keysHeld = new Set();
-    let connections: Node[][] = [];
+    let connections: Connection[] = [];
 
     const getMousePosition = (e: MouseEvent) => {
         if(canvas) {
@@ -35,10 +38,27 @@
         return node;
     }
 
+    const deleteNode = (n: Node) => {
+        for(let i=0; i<GLOBAL.nodes.length; i++)
+            if(GLOBAL.nodes[i] === n)
+                GLOBAL.nodes.splice(i, 1);
+    }
+
     const addConnection = (a: Node, b: Node) => {
-        a.connections.push(b);
-        b.connections.push(a);
-        connections.push([a, b]);
+        a.connections.add(b);
+        b.connections.add(a);
+        connections.push(new Connection(a, b));
+    }
+
+    const deleteConnection = (connection: Connection) => {
+        for(let i=0; i<connections.length; i++) {
+            if(connections[i] === connection) {
+                connections.splice(i, 1);
+                connection.a.connections.delete(connection.b);
+                connection.b.connections.delete(connection.a);
+            }
+        }
+        displayLoop();
     }
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -50,33 +70,51 @@
     }
 
     const handleMouseMove = (e: MouseEvent) => {
-        let shortestDistance = 10000000;
+        let shortestNodeDist = 10000000;
         let closestNode;
+        let shortestConnectionDist = 10000000;
+        let closestConnection;
         const [ newMx, newMy ] = getMousePosition(e);
         mx = newMx;
         my = newMy;
         for(const node of GLOBAL.nodes) {
-            const d = MATH.distance(node.x, node.y, mx, my);
-
-            if(d < GLOBAL.NODE_RADIUS && d < shortestDistance) {
-                shortestDistance = d;
+            const nodeDist = MATH.distance(node.x, node.y, mx, my);
+            if(nodeDist < GLOBAL.NODE_RADIUS && nodeDist < shortestNodeDist) {
+                shortestNodeDist = nodeDist;
                 closestNode = node;
             }
         }
         if(closestNode && !dragging) {
             closestNode.hovered = true;
             hoveredNode = closestNode;
-            displayLoop();
         }
         else if(hoveredNode && !dragging) {
             hoveredNode.hovered = false;
             hoveredNode = null;
-            displayLoop();
         }
+
+        for(const connection of connections) {
+            const a = connection.a;
+            const b = connection.b;
+            if(a && b) {
+                const connectionDist = MATH.pointToLine(a.x, a.y, b.x, b.y, mx, my);
+                if(connectionDist < GLOBAL.CONNECTION_HOVER_DIST && connectionDist < shortestConnectionDist) {
+                    shortestConnectionDist = connectionDist;
+                    closestConnection = connection;
+                }
+            }
+        }
+        if(closestConnection && !hoveredNode)
+            hoveredConnection = closestConnection;
+        else
+            hoveredConnection = null;
+
+        displayLoop();
     }
 
     const handleMouseDown = (e: MouseEvent) => {
         const [ mx, my ] = getMousePosition(e);
+        selectedConnection = null;
         if(keysHeld.has('Control')) {
             if(selectedNode) { 
                 selectedNode.selected = false;
@@ -106,11 +144,38 @@
             selectedNode.selected = true;
             dragging = true;
         }
+        else if(hoveredConnection) {
+            selectedConnection = hoveredConnection; 
+        }
         displayLoop();
     }
 
     const handleMouseUp = () => {
         dragging = false;
+    }
+
+    const handleDeleteButton = () => {
+        if(selectedNode) {
+            deleteNode(selectedNode)
+            selectedNode = null;
+        }
+        else if(selectedConnection) {
+            deleteConnection(selectedConnection);
+            selectedConnection = null;
+        }
+        displayLoop();
+    }
+
+    const handleWidgetDelete = (a: Node, b: Node) => {
+        for(const connection of connections) {
+            if(connection.a === a && connection.b === b ||
+               connection.b === a && connection.a === b) {
+                deleteConnection(connection);    
+                if(selectedNode)
+                    selectedNode.connections = new Set(selectedNode.connections);
+                break;
+            }
+        }
     }
 
     const displayLoop = () => {
@@ -120,13 +185,20 @@
 
             // Connections
             for(const connection of connections) {
-                const a = connection[0];
-                const b = connection[1];
-                ctx.beginPath();
-                ctx.moveTo(a.x, a.y);
-                ctx.lineTo(b.x, b.y);
-                ctx.strokeStyle = '#ededed';
-                ctx.stroke();
+                const a = connection.a;
+                const b = connection.b;
+                if(a && b) {
+                    ctx.lineWidth = connection === hoveredConnection ? 5 : GLOBAL.LINE_WIDTH;
+                    ctx.beginPath();
+                    ctx.moveTo(a.x, a.y);
+                    ctx.lineTo(b.x, b.y);
+                    ctx.strokeStyle = '#ededed';
+                    if(selectedConnection) {
+                        const selected = connection === selectedConnection;
+                        ctx.strokeStyle = selected ? '#00f' : '#ededed';
+                    }
+                    ctx.stroke();
+                }
             }
 
             for(const node of GLOBAL.nodes)
@@ -183,7 +255,7 @@
         if(ctx) {
             ctx.scale(dpr, dpr);
 
-            ctx.lineWidth = 3;
+            ctx.lineWidth = GLOBAL.LINE_WIDTH;
             ctx.font = "32px Monospace";
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
@@ -217,16 +289,27 @@
                     onInput={handleValueChange} 
                 />
             </li>
-            {#if selectedNode.connections.length == 0}
+            {#if selectedNode.connections.size == 0}
                 <li class="inspectorItem">Connections:</li>
             {:else}
                 <div id="connections">
                     <p>Connections:</p>
                     {#each selectedNode.connections as connection}
-                        <ItemWidget label={connection.name} />
+                        <ItemWidget label={connection.name} onDelete={() => handleWidgetDelete(selectedNode, connection)} />
                     {/each}
                 </div>
             {/if}
+        {/if}
+        {#if selectedConnection}
+            <li class="inspectorItem">
+                Members: 
+                {selectedConnection.a.name},{selectedConnection.b.name}
+            </li>
+        {/if}
+        {#if selectedConnection || selectedNode}
+            <button id="deleteButton" on:click={handleDeleteButton}>
+                Delete
+            </button>
         {/if}
     </div>
     <canvas 
@@ -248,6 +331,7 @@
     }
 
     #inspectorContainer {
+        position: relative;
         width: 15%;
         height: 100%;
         background-color: #1f1f1f;
@@ -276,6 +360,21 @@
     #canvas {
         width: 70%;
         height: 100%;
+    }
+
+    #deleteButton {
+        position: absolute;
+        bottom: 0;
+        padding: 2rem;
+        background-color: #242424;
+        font-size: 16pt;
+        border: 1px solid #ededed;
+        width: 100%;
+    }
+
+    #deleteButton:hover {
+        background-color: #ededed;
+        color: #242424;
     }
 </style>
 

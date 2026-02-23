@@ -1,10 +1,11 @@
 <script>
     export let label;
+    export let onDelete;
 </script>
 
 <main>
     <p>{label}</p>
-    <button>
+    <button on:click={() => onDelete(label)}>
         x
     </button>
 </main>
@@ -28,8 +29,13 @@
     button {
         height: 100%;
         aspect-ratio: 1 / 1;
-        background-color: #242424;
+        background-color: #1f1f1f;
         border-left: 1px solid #ededed;
         font-size: 16pt;
+    }
+
+    button:hover {
+        background-color: #ededed;
+        color: #1f1f1f;
     }
 </style>

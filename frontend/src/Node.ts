@@ -1,4 +1,5 @@
 import * as GLOBAL from './global.ts';
+import Connection from './Connection.ts';
 
 class Node {
     x: number;
@@ -7,7 +8,7 @@ class Node {
     name: string;
     hovered: boolean;
     selected: boolean;
-    connections: Node[];
+    connections: Set<Node>;
 
     constructor(x: number, y: number, value: number | null, name: string) {
         this.x = x;
@@ -16,7 +17,7 @@ class Node {
         this.name = name;
         this.hovered = false;
         this.selected = false;
-        this.connections = [];
+        this.connections = new Set(); 
     }
 
     display(ctx: CanvasRenderingContext2D) {
@@ -24,6 +25,7 @@ class Node {
         ctx.beginPath();
         ctx.arc(this.x, this.y, radius, 0, 2*Math.PI);
         ctx.strokeStyle = this.selected ? '#0000ff' : '#ededed';
+        ctx.lineWidth = GLOBAL.LINE_WIDTH;
         ctx.stroke();
         ctx.fillStyle = '#1f1f1f';
         ctx.fill();
