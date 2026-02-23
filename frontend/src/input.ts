@@ -4,6 +4,7 @@ import * as GLOBAL from './global.ts';
 import * as MATH from './math.ts';
 import * as NODE from './Node.ts';
 import * as CONNECTION from './Connection.ts';
+import * as CAMERA from './Camera.ts';
 
 let keysHeld = new Set();
 let dragging: boolean = false;
@@ -22,9 +23,10 @@ export const getSelectedConnection = () => selectedConnection;
 const getMousePosition = (e: MouseEvent) => {
     const canvas = document.getElementById('canvas');
     if(canvas) {
+        const camera = CAMERA.getCamera();
         const canvasBoundingRect = canvas.getBoundingClientRect();    
-        const mx = e.clientX - canvasBoundingRect.left;
-        const my = e.clientY - canvasBoundingRect.top;
+        const mx = e.clientX - canvasBoundingRect.left - camera.x;
+        const my = e.clientY - canvasBoundingRect.top - camera.y;
         return [ mx, my ];        
     }
     return [];
@@ -92,10 +94,15 @@ export const handleMouseMove = (e: MouseEvent) => {
         hoveredConnection.hovered = false;
         hoveredConnection = null;
     }
+
+    if(!selectedNode && !selectedConnection && dragging) {
+        CAMERA.moveCamera(e.movementX, e.movementY);
+    }
 }
 
 export const handleMouseDown = (e: MouseEvent) => {
     const [ mx, my ] = getMousePosition(e);
+    dragging = true;
     if(selectedConnection) {
         selectedConnection.selected = false;
         selectedConnection = null;
@@ -110,7 +117,6 @@ export const handleMouseDown = (e: MouseEvent) => {
         selectedNode = node;
         node.selected = true;
         node.hovered = true;
-        dragging = true;
         return;
     }
 
@@ -127,7 +133,6 @@ export const handleMouseDown = (e: MouseEvent) => {
         selectedNode = hoveredNode;
         if(selectedNode)
             selectedNode.selected = true;
-        dragging = true;
     }
     else if(hoveredConnection) {
         selectedConnection = hoveredConnection;

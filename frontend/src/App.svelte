@@ -33,7 +33,7 @@
 
         INPUT.inputLoop();
         if(canvas && ctx) {
-            ctx.fillStyle = '#1f1f1f';
+            ctx.fillStyle = '#242424';
             ctx.fillRect(0, 0, canvas.width/dpr, canvas.height/dpr);
 
             for(const connection of GLOBAL.connections)
@@ -75,49 +75,49 @@
 </script>
 
 <main>
-    <div id="inspectorContainer">
-        <p id="inspectorLabel">Inspector</p>
-        {#if selectedNode}
-            <li class="inspectorItem">
-                Name: 
-                <Input 
-                    value={selectedNode.name}
-                    onInput={INPUT.handleNameChange} 
-                />
-            </li>
-            <li class="inspectorItem">
-                Value: 
-                <Input 
-                    value={selectedNode.value === null ? '' : selectedNode.value.toString()}
-                    onInput={INPUT.handleValueChange} 
-                />
-            </li>
-            {#if selectedNode.connections.size == 0}
-                <li class="inspectorItem">Connections:</li>
-            {:else}
-                <div id="connections">
-                    <p>Connections:</p>
-                    {#each selectedNode.connections as connection}
-                        <ItemWidget label={connection.name} onDelete={() => INPUT.handleWidgetDelete(selectedNode, connection)} />
-                    {/each}
-                </div>
+    {#if selectedConnection || selectedNode}
+        <div id="inspectorContainer">
+            <p id="inspectorLabel">Inspector</p>
+            {#if selectedNode}
+                <li class="inspectorItem">
+                    Name: 
+                    <Input 
+                        value={selectedNode.name}
+                        onInput={INPUT.handleNameChange} 
+                    />
+                </li>
+                <li class="inspectorItem">
+                    Value: 
+                    <Input 
+                        value={selectedNode.value === null ? '' : selectedNode.value.toString()}
+                        onInput={INPUT.handleValueChange} 
+                    />
+                </li>
+                {#if selectedNode.connections.size == 0}
+                    <li class="inspectorItem">Connections:</li>
+                {:else}
+                    <div id="connections">
+                        <p>Connections:</p>
+                        {#each selectedNode.connections as connection}
+                            <ItemWidget label={connection.name} onDelete={() => INPUT.handleWidgetDelete(selectedNode, connection)} />
+                        {/each}
+                    </div>
+                {/if}
             {/if}
-        {/if}
-        {#if selectedConnection}
-            <li class="inspectorItem">
-                Weight: 
-                <Input 
-                    value={selectedConnection.weight === null ? '' : selectedConnection.weight.toString()}
-                    onInput={INPUT.handleWeightChange} 
-                />
-            </li>
-        {/if}
-        {#if selectedConnection || selectedNode}
+            {#if selectedConnection}
+                <li class="inspectorItem">
+                    Weight: 
+                    <Input 
+                        value={selectedConnection.weight === null ? '' : selectedConnection.weight.toString()}
+                        onInput={INPUT.handleWeightChange} 
+                    />
+                </li>
+            {/if}
             <button id="deleteButton" on:click={INPUT.handleDeleteButton}>
                 Delete
             </button>
-        {/if}
-    </div>
+        </div>
+    {/if}
     <canvas 
         id="canvas" 
         on:mousemove={INPUT.handleMouseMove} 
@@ -128,16 +128,13 @@
 
 <style>
     main {
-        display: flex;
-        justify-content: center;
-        align-items: center;
         width: 100%;
-        height: 70%;
+        height: 100%;
         background-color: #242424;
     }
 
     #inspectorContainer {
-        position: relative;
+        position: absolute;
         width: 15%;
         height: 100%;
         background-color: #1f1f1f;
@@ -164,7 +161,7 @@
     }
 
     #canvas {
-        width: 70%;
+        width: 100%;
         height: 100%;
     }
 

@@ -1,5 +1,6 @@
 import Node from './Node.ts';
 import * as GLOBAL from './global.ts';
+import * as CAMERA from './Camera.ts';
 
 export const addConnection = (a: Node, b: Node) => {
     a.connections.add(b);
@@ -18,6 +19,7 @@ export const deleteConnection = (connection: Connection) => {
 }
 
 class Connection {
+    members: Set<Node>;
     a: Node;
     b: Node;
     weight: number | null;
@@ -25,6 +27,9 @@ class Connection {
     selected: boolean;
 
     constructor(a: Node, b: Node, weight: number | null = null) {
+        this.members = new Set();
+        this.members.add(a);
+        this.members.add(b);
         this.a = a;
         this.b = b;
         this.weight = weight;
@@ -33,21 +38,26 @@ class Connection {
     }
 
     display(ctx: CanvasRenderingContext2D) {
+        const camera = CAMERA.getCamera();
+        const ax = this.a.x + camera.x;
+        const ay = this.a.y + camera.y;
+        const bx = this.b.x + camera.x;
+        const by = this.b.y + camera.y;
         ctx.lineWidth = this.hovered ? 5 : GLOBAL.LINE_WIDTH;
         ctx.beginPath();
-        ctx.moveTo(this.a.x, this.a.y);
-        ctx.lineTo(this.b.x, this.b.y);
+        ctx.moveTo(ax, ay);
+        ctx.lineTo(bx, by);
         ctx.strokeStyle = '#ededed';
         ctx.strokeStyle = this.selected ? '#00f' : '#ededed';
         ctx.stroke();
 
         if(this.weight) {
-            const midX = (this.a.x + this.b.x) / 2;
-            const midY = (this.a.y + this.b.y) / 2;
+            const midX = (ax + bx) / 2;
+            const midY = (ay + by) / 2;
             const spacing = 20;
 
-            const dx = this.b.x - this.a.x;
-            const dy = this.b.y - this.a.y;
+            const dx = bx - ax;
+            const dy = by - ay;
             const mag = Math.sqrt(dx*dx + dy*dy);
             const nx = dy / mag;
             const ny = -dx / mag;
