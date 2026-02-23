@@ -1,5 +1,16 @@
 import * as GLOBAL from './global.ts';
-import Connection from './Connection.ts';
+
+export const createNode = (x: number, y: number, value: number | null, name: string) => {
+    const node = new Node(x, y, value, name);
+    GLOBAL.nodes.push(node);
+    return node;
+}
+
+export const deleteNode = (n: Node) => {
+    for(let i=0; i<GLOBAL.nodes.length; i++)
+    if(GLOBAL.nodes[i] === n)
+        GLOBAL.nodes.splice(i, 1);
+}
 
 class Node {
     x: number;

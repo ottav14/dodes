@@ -27,3 +27,7 @@ export const pointToLine = (lx1: number, ly1: number, lx2: number, ly2: number, 
     const dy = py - closestY;
     return Math.hypot(dx, dy);
 }
+
+export const lerp = (a: number, b: number, t: number) => {
+    return a + (b - a) * t;
+}

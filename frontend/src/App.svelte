@@ -1,253 +1,57 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import * as GLOBAL from './global.js';
-    import * as MATH from './math.ts';
-    import Node from './Node.ts';
+    import * as GLOBAL from './global.ts';
+    import * as INPUT from './input.ts';
     import Connection from './Connection.ts';
+    import Node from './Node.ts';
+    import * as NODE from './Node.ts';
     import Input from './components/Input.svelte';
     import ItemWidget from './components/ItemWidget.svelte';
+
+    let selectedNode: Node | null = null;
+    let selectedConnection: Connection | null = null;
     
-    let canvas: HTMLCanvasElement | null;
-    let ctx: CanvasRenderingContext2D | null;
-    let dpr: number;
-    let hoveredNode: Node | null;
-    let selectedNode: Node | null;
-    let hoveredConnection: Connection | null;
-    let selectedConnection: Connection | null;
-    let dragging: boolean = false;
-    let mx: number;
-    let my: number;
-    let dragOffsetX = 0;
-    let dragOffsetY = 0;
-    let keysHeld = new Set();
-    let connections: Connection[] = [];
-
-    const getMousePosition = (e: MouseEvent) => {
-        if(canvas) {
-            const canvasBoundingRect = canvas.getBoundingClientRect();    
-            const mx = e.clientX - canvasBoundingRect.left;
-            const my = e.clientY - canvasBoundingRect.top;
-            return [ mx, my ];        
-        }
-        return [];
-    }
-
-    const createNode = (x: number, y: number, value: number | null, name: string) => {
-        const node = new Node(x, y, value, name);
-        GLOBAL.nodes.push(node);
-        return node;
-    }
-
-    const deleteNode = (n: Node) => {
-        for(let i=0; i<GLOBAL.nodes.length; i++)
-            if(GLOBAL.nodes[i] === n)
-                GLOBAL.nodes.splice(i, 1);
-    }
-
-    const addConnection = (a: Node, b: Node) => {
-        a.connections.add(b);
-        b.connections.add(a);
-        connections.push(new Connection(a, b));
-    }
-
-    const deleteConnection = (connection: Connection) => {
-        for(let i=0; i<connections.length; i++) {
-            if(connections[i] === connection) {
-                connections.splice(i, 1);
-                connection.a.connections.delete(connection.b);
-                connection.b.connections.delete(connection.a);
-            }
-        }
-        displayLoop();
-    }
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-        keysHeld.add(e.key);
-    }
-
-    const handleKeyUp = (e: KeyboardEvent) => {
-        keysHeld.delete(e.key);
-    }
-
-    const handleMouseMove = (e: MouseEvent) => {
-        let shortestNodeDist = 10000000;
-        let closestNode;
-        let shortestConnectionDist = 10000000;
-        let closestConnection;
-        const [ newMx, newMy ] = getMousePosition(e);
-        mx = newMx;
-        my = newMy;
-        for(const node of GLOBAL.nodes) {
-            const nodeDist = MATH.distance(node.x, node.y, mx, my);
-            if(nodeDist < GLOBAL.NODE_RADIUS && nodeDist < shortestNodeDist) {
-                shortestNodeDist = nodeDist;
-                closestNode = node;
-            }
-        }
-        if(closestNode && !dragging) {
-            closestNode.hovered = true;
-            hoveredNode = closestNode;
-        }
-        else if(hoveredNode && !dragging) {
-            hoveredNode.hovered = false;
-            hoveredNode = null;
-        }
-
-        for(const connection of connections) {
-            const a = connection.a;
-            const b = connection.b;
-            if(a && b) {
-                const connectionDist = MATH.pointToLine(a.x, a.y, b.x, b.y, mx, my);
-                if(connectionDist < GLOBAL.CONNECTION_HOVER_DIST && connectionDist < shortestConnectionDist) {
-                    shortestConnectionDist = connectionDist;
-                    closestConnection = connection;
-                }
-            }
-        }
-        if(closestConnection && !hoveredNode)
-            hoveredConnection = closestConnection;
-        else
-            hoveredConnection = null;
-
-        displayLoop();
-    }
-
-    const handleMouseDown = (e: MouseEvent) => {
-        const [ mx, my ] = getMousePosition(e);
-        selectedConnection = null;
-        if(keysHeld.has('Control')) {
-            if(selectedNode) { 
-                selectedNode.selected = false;
-                selectedNode = null;
-            }
-
-            const node = createNode(mx, my, null, '');
-            selectedNode = node;
-            node.selected = true;
-            node.hovered = true;
-            dragging = true;
-            displayLoop();
-            return;
-        }
-
-        if(selectedNode) {
-            if(keysHeld.has('Shift') && hoveredNode)
-                addConnection(selectedNode, hoveredNode);
-
-            selectedNode.selected = false;
-            selectedNode = null;
-        }
-        if(hoveredNode) {
-            dragOffsetX = hoveredNode.x - mx;
-            dragOffsetY = hoveredNode.y - my;
-            selectedNode = hoveredNode;
-            selectedNode.selected = true;
-            dragging = true;
-        }
-        else if(hoveredConnection) {
-            selectedConnection = hoveredConnection; 
-        }
-        displayLoop();
-    }
-
-    const handleMouseUp = () => {
-        dragging = false;
-    }
-
-    const handleDeleteButton = () => {
-        if(selectedNode) {
-            deleteNode(selectedNode)
-            selectedNode = null;
-        }
-        else if(selectedConnection) {
-            deleteConnection(selectedConnection);
-            selectedConnection = null;
-        }
-        displayLoop();
-    }
-
-    const handleWidgetDelete = (a: Node, b: Node) => {
-        for(const connection of connections) {
-            if(connection.a === a && connection.b === b ||
-               connection.b === a && connection.a === b) {
-                deleteConnection(connection);    
-                if(selectedNode)
-                    selectedNode.connections = new Set(selectedNode.connections);
-                break;
-            }
+    const handleResize = () => {
+        const canvas = document.getElementById('canvas') as HTMLCanvasElement;
+        const ctx = canvas.getContext('2d');
+        if(canvas && ctx) {
+            const rect = canvas.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            ctx.scale(dpr, dpr);
         }
     }
 
     const displayLoop = () => {
+        const canvas = document.getElementById('canvas') as HTMLCanvasElement;
+        const ctx = canvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+
+        selectedNode = INPUT.getSelectedNode();
+        selectedConnection = INPUT.getSelectedConnection();
+
+        INPUT.inputLoop();
         if(canvas && ctx) {
             ctx.fillStyle = '#1f1f1f';
             ctx.fillRect(0, 0, canvas.width/dpr, canvas.height/dpr);
 
-            // Connections
-            for(const connection of connections) {
-                const a = connection.a;
-                const b = connection.b;
-                if(a && b) {
-                    ctx.lineWidth = connection === hoveredConnection ? 5 : GLOBAL.LINE_WIDTH;
-                    ctx.beginPath();
-                    ctx.moveTo(a.x, a.y);
-                    ctx.lineTo(b.x, b.y);
-                    ctx.strokeStyle = '#ededed';
-                    if(selectedConnection) {
-                        const selected = connection === selectedConnection;
-                        ctx.strokeStyle = selected ? '#00f' : '#ededed';
-                    }
-                    ctx.stroke();
-                }
-            }
+            for(const connection of GLOBAL.connections)
+                connection.display(ctx);
 
             for(const node of GLOBAL.nodes)
                 node.display(ctx);
 
         }
-    }
-
-    const updateLoop = () => {
-        if(dragging && hoveredNode) {
-            hoveredNode.x = mx + dragOffsetX;
-            hoveredNode.y = my + dragOffsetY;
-            displayLoop();
-        }
-        requestAnimationFrame(updateLoop);
-    }
-
-    const handleResize = () => {
-        if(canvas && ctx) {
-            const rect = canvas.getBoundingClientRect();
-            dpr = window.devicePixelRatio || 1;
-            canvas.width = rect.width * dpr;
-            canvas.height = rect.height * dpr;
-            ctx.scale(dpr, dpr);
-            displayLoop();
-        }
-    }
-
-    const handleValueChange = (value: string) => {
-        if(selectedNode) {
-            selectedNode.value = !value.length ? null : parseInt(value);
-            displayLoop();
-        }
-    }
-
-    const handleNameChange = (value: string) => {
-        if(selectedNode) {
-            selectedNode.name = value;
-            displayLoop();
-        }
+        requestAnimationFrame(displayLoop);
     }
 
     onMount(() => {
-        canvas = document.getElementById('canvas') as HTMLCanvasElement;
-        if(canvas)
-            ctx = canvas.getContext('2d');
+        const canvas = document.getElementById('canvas') as HTMLCanvasElement;
+        const ctx = canvas.getContext('2d');
 
         const rect = canvas.getBoundingClientRect();
-        dpr = window.devicePixelRatio || 1;
+        const dpr = window.devicePixelRatio || 1;
         canvas.width = rect.width * dpr;
         canvas.height = rect.height * dpr;
         window.addEventListener('resize',handleResize);
@@ -262,11 +66,10 @@
 
             const cw = canvas.width/dpr;
             const ch = canvas.height/dpr;
-            createNode(cw/3, ch/2, 10, 'a');
-            createNode(2*cw/3, ch/2, 5, 'b');
+            NODE.createNode(cw/3, ch/2, 10, 'a');
+            NODE.createNode(2*cw/3, ch/2, 5, 'b');
 
             displayLoop();
-            updateLoop();
         }
     });
 </script>
@@ -279,14 +82,14 @@
                 Name: 
                 <Input 
                     value={selectedNode.name}
-                    onInput={handleNameChange} 
+                    onInput={INPUT.handleNameChange} 
                 />
             </li>
             <li class="inspectorItem">
                 Value: 
                 <Input 
                     value={selectedNode.value === null ? '' : selectedNode.value.toString()}
-                    onInput={handleValueChange} 
+                    onInput={INPUT.handleValueChange} 
                 />
             </li>
             {#if selectedNode.connections.size == 0}
@@ -295,28 +98,31 @@
                 <div id="connections">
                     <p>Connections:</p>
                     {#each selectedNode.connections as connection}
-                        <ItemWidget label={connection.name} onDelete={() => handleWidgetDelete(selectedNode, connection)} />
+                        <ItemWidget label={connection.name} onDelete={() => INPUT.handleWidgetDelete(selectedNode, connection)} />
                     {/each}
                 </div>
             {/if}
         {/if}
         {#if selectedConnection}
             <li class="inspectorItem">
-                Members: 
-                {selectedConnection.a.name},{selectedConnection.b.name}
+                Weight: 
+                <Input 
+                    value={selectedConnection.weight === null ? '' : selectedConnection.weight.toString()}
+                    onInput={INPUT.handleWeightChange} 
+                />
             </li>
         {/if}
         {#if selectedConnection || selectedNode}
-            <button id="deleteButton" on:click={handleDeleteButton}>
+            <button id="deleteButton" on:click={INPUT.handleDeleteButton}>
                 Delete
             </button>
         {/if}
     </div>
     <canvas 
         id="canvas" 
-        on:mousemove={handleMouseMove} 
-        on:mousedown={handleMouseDown}
-        on:mouseup={handleMouseUp}
+        on:mousemove={INPUT.handleMouseMove} 
+        on:mousedown={INPUT.handleMouseDown}
+        on:mouseup={INPUT.handleMouseUp}
     ></canvas>
 </main>
 
@@ -379,6 +185,6 @@
 </style>
 
 <svelte:window 
-    on:keydown={handleKeyDown} 
-    on:keyup={handleKeyUp} 
+    on:keydown={INPUT.handleKeyDown} 
+    on:keyup={INPUT.handleKeyUp} 
 />
