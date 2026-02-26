@@ -1,10 +1,10 @@
 * {
-    color: #ededed;
     font-family: Menlo, Monaco, "Courier New", monospace;
 }
 
 body {
     margin: 0;
+    overflow: hidden;
 }
 
 #app {

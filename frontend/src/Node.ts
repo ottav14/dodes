@@ -10,6 +10,8 @@ class Node {
     hovered: boolean;
     selected: boolean;
     connections: Set<Node>;
+    startNode: boolean;
+    targetNode: boolean;
 
     constructor(x: number, y: number, value: number | null, name: string) {
         this.x = x;
@@ -19,6 +21,8 @@ class Node {
         this.hovered = false;
         this.selected = false;
         this.connections = new Set(); 
+        this.startNode = false;
+        this.targetNode = false;
     }
 
     display(ctx: CanvasRenderingContext2D) {
@@ -26,9 +30,14 @@ class Node {
         const camera = CAMERA.getCamera();
         const x = this.x + camera.x;
         const y = this.y + camera.y;
+        
+        if(this.selected) ctx.strokeStyle = '#00f';
+        else if(this.startNode) ctx.strokeStyle = '#0f0';
+        else if(this.targetNode) ctx.strokeStyle = '#f00';
+        else ctx.strokeStyle = '#ededed';
+
         ctx.beginPath();
         ctx.arc(x, y, radius, 0, 2*Math.PI);
-        ctx.strokeStyle = this.selected ? '#0000ff' : '#ededed';
         ctx.lineWidth = GLOBAL.LINE_WIDTH;
         ctx.stroke();
         ctx.fillStyle = '#1f1f1f';

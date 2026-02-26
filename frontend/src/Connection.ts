@@ -2,10 +2,10 @@ import Node from './Node.ts';
 import * as GLOBAL from './global.ts';
 import * as CAMERA from './Camera.ts';
 
-export const addConnection = (a: Node, b: Node) => {
+export const addConnection = (a: Node, b: Node, weight: number | null = null) => {
     a.connections.add(b);
     b.connections.add(a);
-    GLOBAL.connections.push(new Connection(a, b));
+    GLOBAL.connections.push(new Connection(a, b, weight));
 }
 
 export const deleteConnection = (connection: Connection) => {

@@ -56,9 +56,14 @@ export const handleMouseMove = (e: MouseEvent) => {
     let closestNode;
     let shortestConnectionDist = 10000000;
     let closestConnection;
+    const canvas = document.getElementById('canvas');
     const [ newMx, newMy ] = getMousePosition(e);
     mx = newMx;
     my = newMy;
+
+    if(canvas)
+        canvas.style.cursor = hoveredNode ? 'default' : 'pointer';
+
     for(const node of GLOBAL.nodes) {
         const nodeDist = MATH.distance(node.x, node.y, mx, my);
         if(nodeDist < GLOBAL.NODE_RADIUS && nodeDist < shortestNodeDist) {
@@ -96,10 +101,13 @@ export const handleMouseMove = (e: MouseEvent) => {
     }
 
     if(!selectedNode && !selectedConnection && dragging) {
+        if(canvas)
+            canvas.style.cursor = 'grab';
         CAMERA.moveCamera(e.movementX, e.movementY);
     }
 }
 
+let defaultName = 'd';
 export const handleMouseDown = (e: MouseEvent) => {
     const [ mx, my ] = getMousePosition(e);
     dragging = true;
@@ -113,7 +121,8 @@ export const handleMouseDown = (e: MouseEvent) => {
             selectedNode = null;
         }
 
-        const node = NODE.createNode(mx, my, null, '');
+        const node = NODE.createNode(mx, my, null, defaultName);
+        defaultName = String.fromCharCode(defaultName.charCodeAt(0) + 1);
         selectedNode = node;
         node.selected = true;
         node.hovered = true;
