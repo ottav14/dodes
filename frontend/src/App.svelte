@@ -171,41 +171,6 @@
                 onClick={() => GLOBAL.setSaving(true)}
             />
         </div>
-        <div id="functionsContainer">
-            <p class="panelLabel">Functions</p>
-            <Dropdown 
-                value={algorithms[0]} 
-                items={algorithms} 
-            />
-            <div id="functionOptions">
-                <li class="inspectorItem">
-                    Start node: 
-                    <Input 
-                        value=''
-                        onInput={(val) => {
-                            if(startNode)
-                                startNode.startNode = false;
-                            startNode = getNodeFromName(val); 
-                            if(startNode)
-                                startNode.startNode = true;
-                        }}
-                    />
-                </li>
-                <li class="inspectorItem">
-                    End node: 
-                    <Input 
-                        value=''
-                        onInput={(val) => {
-                            if(targetNode)
-                                targetNode.targetNode = false;
-                            targetNode = getNodeFromName(val); 
-                            if(targetNode)
-                                targetNode.targetNode = true;
-                        }}
-                    />
-                </li>
-            </div>
-        </div>
     </div>
 </main>
 

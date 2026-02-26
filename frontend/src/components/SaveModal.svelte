@@ -129,15 +129,19 @@
             {/if}
             {/each}
         </div>
-        <Input 
-             onInput={(value) => name = value} 
-             width="10rem"
-        />
-        <SVGButton 
-             title="Save" 
-             path="M440-800v487L216-537l-56 57 320 320 320-320-56-57-224 224v-487h-80Z" 
-             onClick={handleSave}
-        />
+        <div id="submit">
+            <Input 
+                 onInput={(value) => name = value} 
+                 width="10rem"
+                 height="78px"
+                 fontSize="28pt"
+            />
+            <SVGButton 
+                 title="Save" 
+                 path="M440-800v487L216-537l-56 57 320 320 320-320-56-57-224 224v-487h-80Z" 
+                 onClick={handleSave}
+            />
+        </div>
     </div>
 </main>
 
@@ -160,6 +164,7 @@
         display: flex;
         align-items: center;
         padding-right: 3rem;
+        padding-bottom: 2rem;
         flex-direction: column;
         width: 50rem;
         height: 30rem;
@@ -191,5 +196,9 @@
     #closeButton {
         position: absolute;
         right: 0;
+    }
+
+    #submit {
+        display: flex;
     }
 </style>

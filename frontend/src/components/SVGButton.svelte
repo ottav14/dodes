@@ -12,7 +12,7 @@
         on:mouseenter={() => hovered = true}
         on:mouseleave={() => hovered = false}
         on:click={onClick}
-        style="width: {`${size}rem`}"
+        style="width: {`${size}rem`}; height: {`${size}rem`};"
     >
         <svg 
             xmlns="http://www.w3.org/2000/svg" 
@@ -30,7 +30,6 @@
     button {
         background-color: #1f1f1f;
         border: 1px solid #ededed;
-        aspect-ratio: 1 / 1;
         padding: 0;
     }
 
