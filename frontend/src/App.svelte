@@ -6,11 +6,11 @@
     import Node from './Node.ts';
     import * as NODE from './Node.ts';
     import * as CONNECTION from './Connection.ts';
-    import Input from './components/lib/Input.svelte';
-    import ItemWidget from './components/lib/ItemWidget.svelte';
+    import Input from './components/Input.svelte';
+    import ItemWidget from './components/ItemWidget.svelte';
     import SaveModal from './components/SaveModal.svelte';
     import SVGButton from './components/SVGButton.svelte';
-    import Dropdown from './components/lib/Dropdown.svelte';
+    import Dropdown from './components/Dropdown.svelte';
     import * as FUNCTIONS from './functions.ts';
 
     let selectedNode: Node | null = null;

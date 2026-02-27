@@ -1,6 +1,6 @@
 <script lang="ts">
     import SVGButton from './SVGButton.svelte';
-    import Input from './lib/Input.svelte';
+    import Input from './Input.svelte';
     import Node from '../Node.ts';
     import Connection from '../Connection.ts';
     import * as GLOBAL from '../global.ts';
