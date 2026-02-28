@@ -9,6 +9,7 @@
     import Input from './components/lib/Input.svelte';
     import ItemWidget from './components/lib/ItemWidget.svelte';
     import SaveModal from './components/SaveModal.svelte';
+    import WarningModal from './components/WarningModal.svelte';
     import SVGButton from './components/SVGButton.svelte';
     import Dropdown from './components/lib/Dropdown.svelte';
     import * as FUNCTIONS from './functions.ts';
@@ -18,16 +19,11 @@
     let startNode: Node | null = null;
     let targetNode: Node | null = null;
     let saving = false;
+    let warning = false;
 
     const algorithms = [ 'Dijkstra', 'A*' ];
+    let algorithm = algorithms[0];
 
-    const getNodeFromName = (name: string) => {
-        for(const node of GLOBAL.nodes)
-            if(node.name === name)
-                return node;
-        return null;
-    }
-    
     const handleResize = () => {
         const canvas = document.getElementById('canvas') as HTMLCanvasElement;
         const ctx = canvas.getContext('2d');
@@ -52,7 +48,7 @@
 
         selectedNode = INPUT.getSelectedNode();
         selectedConnection = INPUT.getSelectedConnection();
-        saving = GLOBAL.getSaving();
+        saving = GLOBAL.getMode() === 'saving';
 
         INPUT.inputLoop();
         if(canvas && ctx) {
@@ -69,6 +65,94 @@
         requestAnimationFrame(displayLoop);
     }
 
+    const setStartNode = (name: string) => {
+        if(startNode) {
+            startNode.startNode = false;
+            startNode = null;
+        }
+        for(const node of GLOBAL.nodes) {
+            if(node.name === name) {
+                startNode = node;
+                node.startNode = true;
+            }
+        }
+    }
+
+    const setTargetNode = (name: string) => {
+        if(targetNode) {
+            targetNode.targetNode = false;
+            targetNode = null;
+        }
+        for(const node of GLOBAL.nodes) {
+            if(node.name === name) {
+                targetNode = node;
+                node.targetNode = true;
+            }
+        }
+    }
+
+    const updateEndNodes = () => {
+        for(const node of GLOBAL.nodes) {
+            if(node.startNode) startNode = node;
+            if(node.targetNode) targetNode = node;
+        }
+    }
+
+    const getNodeByName = (name: string) => {
+        for(const node of GLOBAL.nodes)
+            if(node.name === name)
+                return node;
+        return null;
+    }
+
+    const playFunction = () => {
+        warning = false;
+        updateEndNodes();
+        switch(algorithm) {
+            case 'Dijkstra':
+                for(const node of GLOBAL.nodes) 
+                    node.value = null;
+                if(startNode && targetNode) {
+                    let [ distances, path ] = FUNCTIONS.dijkstras(startNode, targetNode, GLOBAL.nodes, GLOBAL.connections);
+                    if(distances) {
+                        for(const name of Object.keys(distances)) {
+                            const node = getNodeByName(name);
+                            if(node)
+                                node.value = (distances as Record<string, any>)[name];
+                        }
+
+                        const pathNodes = [];
+                        for(const name of path as string[]) {
+                            const node = getNodeByName(name);
+                            if(node) {
+                                pathNodes.push(node);
+                                node.pathNode = true;
+                            }
+                        }
+
+                        for(const connection of GLOBAL.connections) {
+                            let aIsPath = false;
+                            let bIsPath = false;
+                            for(const node of pathNodes) {
+                                if(node === connection.a) aIsPath = true;
+                                if(node === connection.b) bIsPath = true;
+                                if(aIsPath && bIsPath) break;
+                            }
+                            if(aIsPath && bIsPath)
+                                connection.path = true;
+                        }
+                    }
+                }
+                break;
+            case 'A*':
+                break;
+        }
+    }
+
+    const warn = () => {
+        warning = true;
+    }
+
     onMount(() => {
         const canvas = document.getElementById('canvas') as HTMLCanvasElement;
         const ctx = canvas.getContext('2d');
@@ -78,7 +162,6 @@
         canvas.width = rect.width * dpr;
         canvas.height = rect.height * dpr;
         window.addEventListener('resize',handleResize);
-
 
         if(ctx) {
             ctx.scale(dpr, dpr);
@@ -113,6 +196,12 @@
 <main>
     {#if saving}
         <SaveModal />
+    {/if}
+    {#if warning}
+        <WarningModal 
+            onClose={() => warning = false} 
+            onConfirm={playFunction}
+        />
     {/if}
     {#if selectedConnection || selectedNode}
         <div id="inspectorContainer">
@@ -168,7 +257,33 @@
             <SVGButton 
                 title="Save"
                 path="m720-120 160-160-56-56-64 64v-167h-80v167l-64-64-56 56 160 160ZM560 0v-80h320V0H560ZM240-160q-33 0-56.5-23.5T160-240v-560q0-33 23.5-56.5T240-880h280l240 240v121h-80v-81H480v-200H240v560h240v80H240Zm0-80v-560 560Z"
-                onClick={() => GLOBAL.setSaving(true)}
+                onClick={() => GLOBAL.setMode('saving')}
+            />
+        </div>
+        <div id="functionsContainer">
+            <p class="panelLabel">Functions</p>
+            <div id="functionOptions">
+                <Dropdown 
+                     items={algorithms} 
+                     onChange={(val) => algorithm = val}
+                 />
+                <li class="inspectorItem">
+                    Start node: 
+                    <Input 
+                        onInput={(val) => setStartNode(val)} 
+                    />
+                </li>
+                <li class="inspectorItem">
+                    Target node: 
+                    <Input 
+                        onInput={(val) => setTargetNode(val)} 
+                    />
+                </li>
+            </div>
+            <SVGButton 
+                title="Play"
+                path="M320-200v-560l440 280-440 280Zm80-280Zm0 134 210-134-210-134v268Z"
+                onClick={warn}
             />
         </div>
         <div id="functionsContainer">
@@ -242,30 +357,27 @@
 
     #toolbar {
         display: flex;
-        height: 100%;
+        position: absolute;
+        bottom: 0;
+        right: 100%;
         width: var(--toolbar-width);
+        height: fit-content;
         align-items: flex-end;
-    }
-
-    #saveButton {
-        background-color: #1f1f1f;
-        border: 1px solid #ededed;
-        width: var(--toolbar-width);
-        height: var(--toolbar-width);
-        padding: 0;
     }
 
     #functionsContainer {
         display: flex;
         flex-direction: column;
         align-items: center;
-        height: 100%;
+        height: calc(100% - 2rem);
         background-color: #1f1f1f;
         color: #ededed;
+        padding: 1rem;
     }
 
     #functionOptions {
         margin-top: 2rem;
+        flex-grow: 1;
     }
 
     .panelLabel {

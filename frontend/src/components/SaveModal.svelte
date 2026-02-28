@@ -16,7 +16,7 @@
     updateSaveNames();
 
     const handleClose = () => {
-        GLOBAL.setSaving(false);
+        GLOBAL.setMode(null);
     }
 
     const handleDelete = (key: string | null) => {
@@ -36,7 +36,6 @@
                 'y': node.y,
                 'startNode': node.startNode,
                 'targetNode': node.targetNode,
-                'connections': [...node.connections]
             });
         }
 
@@ -65,7 +64,7 @@
             const nodes = [];
             for(const node of save.nodes) {
                 const n = new Node(node.x, node.y, node.value, node.name)
-                n.connections = new Set(node.connections);
+                n.connections = new Set();
                 n.startNode = node.startNode;
                 n.targetNode = node.targetNode;
                 nodes.push(n);
@@ -73,23 +72,19 @@
 
             const connections = [];
             for(const connection of save.connections) {
-                let a;
+                let a, b;
                 for(const node of nodes) {
-                    if(connection.a === node.name) {
+                    if(connection.a === node.name)
                         a = node;
-                        break;
-                    }
-                }
-
-                let b;
-                for(const node of nodes) {
-                    if(connection.b === node.name) {
+                    if(connection.b === node.name)
                         b = node;
+                    if(a && b) {
+                        connections.push(new Connection(a, b, connection.weight));
+                        a.connections.add(b);
+                        b.connections.add(a);
                         break;
                     }
                 }
-                if(a && b)
-                    connections.push(new Connection(a, b, connection.weight));
             }
 
             GLOBAL.setNodes(nodes);

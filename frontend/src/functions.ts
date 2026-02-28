@@ -14,32 +14,38 @@ export const dijkstras = (startNode: Node, targetNode: Node, nodes: Node[], conn
     const queue = [startNode];
     const visited = new Set();
     const distances: Record<string, any> = {};
+    const previous: Record<string, any> = {};
     for(const n of nodes)
-        for(const m of nodes)
-            if(n !== m)
-                distances[`${n.name},${m.name}`] = Infinity;
-    distances[`${startNode.name},${startNode.name}`] = 0;
+        distances[n.name] = Infinity;
+    distances[startNode.name] = 0;
 
-    while(currentNode !== targetNode) {
+
+    while(queue.length) {
         currentNode = queue.shift();
-        if(currentNode) {
-            const currentDistance = distances[`${currentNode.name},${startNode.name}`];
-            visited.add(currentNode);
-            for(const other of currentNode.connections) {
-                if(!visited.has(other)) {
+        if(currentNode && !visited.has(currentNode.name)) {
+            const currentDistance = distances[currentNode.name];
+            visited.add(currentNode.name);
+            const currentConnections = [...currentNode.connections];
+            for(const other of currentConnections) {
+                if(!visited.has(other.name))
                     queue.push(other);
-                    const connection = getConnectionFromNodes(currentNode, other, connections);
-                    let d;
-                    if(connection?.weight) d = currentDistance + connection?.weight;
-                    else d = currentDistance;
-                    if(distances[`${currentNode.name},${other.name}`] > d) {
-                        distances[`${currentNode.name},${other.name}`] = d;
-                        distances[`${other.name},${currentNode.name}`] = d;
-                    }
+
+                const connection = getConnectionFromNodes(currentNode, other, connections);
+                const d = connection?.weight ? currentDistance + connection.weight : currentDistance;
+                if(distances[other.name] > d) {
+                    distances[other.name] = d;
+                    previous[other.name] = currentNode.name; 
                 }
             }
         }
-        else
-            return;
     }
+
+    let currentName = targetNode.name;
+    const path = [];
+    while(currentName !== startNode.name) {
+        path.unshift(currentName);
+        currentName = previous[currentName];
+    }
+    path.unshift(currentName);
+    return [ distances, path ];
 }

@@ -25,6 +25,7 @@ class Connection {
     weight: number | null;
     hovered: boolean;
     selected: boolean;
+    path: boolean;
 
     constructor(a: Node, b: Node, weight: number | null = null) {
         this.members = new Set();
@@ -35,6 +36,7 @@ class Connection {
         this.weight = weight;
         this.hovered = false;
         this.selected = false;
+        this.path = false;
     }
 
     display(ctx: CanvasRenderingContext2D) {
@@ -47,8 +49,11 @@ class Connection {
         ctx.beginPath();
         ctx.moveTo(ax, ay);
         ctx.lineTo(bx, by);
-        ctx.strokeStyle = '#ededed';
-        ctx.strokeStyle = this.selected ? '#00f' : '#ededed';
+
+        if(this.selected) ctx.strokeStyle = '#00f';
+        else if(this.path) ctx.strokeStyle = '#ff0';
+        else ctx.strokeStyle = '#ededed';
+
         ctx.stroke();
 
         if(this.weight) {

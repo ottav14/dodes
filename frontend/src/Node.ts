@@ -12,6 +12,7 @@ class Node {
     connections: Set<Node>;
     startNode: boolean;
     targetNode: boolean;
+    pathNode: boolean;
 
     constructor(x: number, y: number, value: number | null, name: string) {
         this.x = x;
@@ -23,6 +24,7 @@ class Node {
         this.connections = new Set(); 
         this.startNode = false;
         this.targetNode = false;
+        this.pathNode = false;
     }
 
     display(ctx: CanvasRenderingContext2D) {
@@ -32,6 +34,7 @@ class Node {
         const y = this.y + camera.y;
         
         if(this.selected) ctx.strokeStyle = '#00f';
+        else if(this.pathNode) ctx.strokeStyle = '#ff0';
         else if(this.startNode) ctx.strokeStyle = '#0f0';
         else if(this.targetNode) ctx.strokeStyle = '#f00';
         else ctx.strokeStyle = '#ededed';
